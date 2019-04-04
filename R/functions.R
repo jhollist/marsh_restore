@@ -7,6 +7,7 @@ library(stringr)
 library(readxl)
 library(readr)
 library(here)
+library(ggplot2)
 
 #' convert degrees minutes decimal seconds to decimal degrees
 #' 
