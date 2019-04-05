@@ -18,9 +18,9 @@ start_end_dists <- profiles %>%
             end_dist = min(max_dist))
 
 profiles %>%
-  ggplot(aes(x = distance, y = elevation, color = factor(year))) +
-  geom_point() +
-  facet_grid(transect ~ ., scales = "free_y") 
+  ggplot(aes(x = prop_distance, y = elevation, color = factor(year))) +
+  geom_line() +
+  facet_grid(transect ~ ., scales = "free") 
 
 prof_1_13 <- profiles %>%
   filter(transect == 1) %>%

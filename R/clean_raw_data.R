@@ -31,8 +31,37 @@ prof_2016 <- read_excel(here("data/raw/Cogg rest elevation data for Jeff.xlsx"),
          year = 2016) %>%
   write_csv("data/prof_2016.csv")
 
-profiles <- prof_2013 %>%
-  rbind(prof_2016) %>% 
+# Truncate to start and end of marsh
+t1 <- c(19, 75)
+t2 <- c(20, 118)
+t3 <- c(13, 89)
+
+#Meathead way to do this
+
+profile_1 <- prof_2013 %>%
+  rbind(prof_2016) %>%
+  filter(transect == 1) %>%
+  filter(distance >= t1[1] & distance <= t1[2])
+
+profile_2 <- prof_2013 %>%
+  rbind(prof_2016) %>%
+  filter(transect == 2) %>%
+  filter(distance >= t2[1] & distance <= t2[2])
+
+profile_3 <- prof_2013 %>%
+  rbind(prof_2016) %>%
+  filter(transect == 3) %>%
+  filter(distance >= t3[1] & distance <= t3[2])
+
+rescale <- function(x){
+  (x - min(x))/(max(x) - min(x))
+}  
+
+profile <- profile_1 %>%
+  rbind(profile_2) %>%
+  rbind(profile_3) %>%
+  group_by(transect) %>%
+  mutate(prop_distance = rescale(distance)) %>%
   write_csv("data/profiles.csv")
 
 
