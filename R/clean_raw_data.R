@@ -1,14 +1,4 @@
-
 source(here::here("R/functions.R"))
-
-wells <- read_excel(here("data/raw/Cogg rest elevation data for Jeff.xlsx"),
-                    sheet = "Well locations") %>%
-  rename_all(tolower) %>%
-  select(well_num = `well #`, name, long = long, lat = lat) %>%
-  mutate(long = -dmds(long), lat = dmds(lat)) %>%
-  na.omit() %>% #no na's exepcted so should be fine (look into assertr)
-  write_csv(here("data/wells.csv"))
-
 
 prof_2013 <- read_excel(here("data/raw/Cogg rest elevation data for Jeff.xlsx"),
                         sheet = "2013 profile data") %>%
@@ -37,7 +27,6 @@ t2 <- c(20, 118)
 t3 <- c(13, 89)
 
 #Meathead way to do this
-
 profile_1 <- prof_2013 %>%
   rbind(prof_2016) %>%
   filter(transect == 1) %>%
@@ -57,11 +46,34 @@ rescale <- function(x){
   (x - min(x))/(max(x) - min(x))
 }  
 
+
+  
+
+# Add in habitat stuff
+habitat <- read_excel(here("data/raw/JHo cogg rest habitat transition data.xlsx")) %>%
+  rename_all(tolower) %>%
+  rename(distance = distance_12) %>%
+  mutate(longitude_dd = -dmds(rtk(gsub("-","",longitude))), 
+         latitude_dd = dmds(rtk(latitude))) %>%
+  select(name,transect,elevation,latitude,longitude,distance,longitude_dd, 
+         latitude_dd,year,habitat)
+  
 profile <- profile_1 %>%
   rbind(profile_2) %>%
   rbind(profile_3) %>%
+  mutate(habitat = NA) %>%
+  rbind(habitat) %>%
+  filter(year == 2013 | year == 2016) %>%
   group_by(transect) %>%
   mutate(prop_distance = rescale(distance)) %>%
+  ungroup() %>%
+  arrange(year, transect, distance)
+
+
+hab <- zoo::na.locf(replace(profile$habitat, profile$habitat == 0, NA))
+
+profile <- profile %>%
+  mutate(habitat = hab) %>%
   write_csv("data/profiles.csv")
 
 
