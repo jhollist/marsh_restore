@@ -8,6 +8,7 @@ library(readxl)
 library(readr)
 library(here)
 library(ggplot2)
+library(tidyr)
 
 #' convert degrees minutes decimal seconds to decimal degrees
 #' 
@@ -51,3 +52,27 @@ rtk <- function(rtks, neg = F){
   }
   dms
 }
+
+#' Assign id to each unique section of habitat
+#' @param x A vector of habitats, in order based on distance along transect
+#' @export
+create_habitat_id <- function(x){
+  y<-vector("numeric", length(x))
+  y_id<-vector("numeric", length(x))
+  for(i in seq_along(x)){
+    if(i == 1){
+      y[i] <- i
+    } else {
+      y[i] <- ifelse(x[i]==x[i-1], FALSE,i)
+    }
+  }
+  for(i in seq_along(y)){
+    if(i == 1){
+      y[1] <- y[1]
+    } else {
+      y[i] <- ifelse(y[i] == 0, y[i-1], y[i])
+    }
+  }
+  y
+}
+

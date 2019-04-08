@@ -46,9 +46,6 @@ rescale <- function(x){
   (x - min(x))/(max(x) - min(x))
 }  
 
-
-  
-
 # Add in habitat stuff
 habitat <- read_excel(here("data/raw/JHo cogg rest habitat transition data.xlsx")) %>%
   rename_all(tolower) %>%
@@ -67,13 +64,46 @@ profile <- profile_1 %>%
   group_by(transect) %>%
   mutate(prop_distance = rescale(distance)) %>%
   ungroup() %>%
-  arrange(year, transect, distance)
+  arrange(year, transect, distance) %>%
+  mutate(habitat = zoo::na.locf(habitat, na.rm = FALSE)) %>%
+  mutate(habitat_13 = case_when(year == 2013 ~ habitat)) %>%
+  mutate(habitat_13 = case_when(habitat_13 == "Salt meadow" ~ "high marsh", 
+                                habitat_13 == "High marsh mix" ~ 
+                                  "high marsh mix",
+                                habitat_13 == "Spartina alterniflora" | 
+                                  habitat_13 ==  "Bare/die-off (platform)" ~ 
+                                  "s. alt and bare",
+                                TRUE ~ NA_character_))
 
+#Classify 2016 sections based on 2013 habitat
+  
+habitat_13_distances <- profile %>%
+  filter(year == 2013) %>%
+  mutate(habitat_id = create_habitat_id(habitat_13)) %>%
+  group_by(transect, habitat_id, habitat_13) %>%
+  summarize(start_dist = min(distance),
+            end_dist = max(distance)) %>%
+  ungroup() %>%
+  select(transect, habitat_13, start_dist, end_dist) %>%
+  na.omit() %>%
+  gather("dist_type", "distance", start_dist:end_dist) %>%
+  arrange(transect, distance) %>%
+  select(transect, habitat_13, distance)
 
-hab <- zoo::na.locf(replace(profile$habitat, profile$habitat == 0, NA))
 
 profile <- profile %>%
-  mutate(habitat = hab) %>%
+  filter(year == 2016) %>%
+  select(transect, habitat_13, distance) %>%
+  rbind(habitat_13_distances) %>%
+  arrange(transect,distance) %>% 
+  mutate(habitat_13_x = zoo::na.locf(habitat_13, na.rm = F),
+         year = 2016) %>%
+  select(year, transect, distance, habitat_13_x) %>%
+  na.omit() %>%
+  right_join(profile) %>%
+  mutate(habitat_13 = case_when(is.na(habitat_13) ~ habitat_13_x,
+                                TRUE ~ habitat_13)) %>%
+  select(-habitat_13_x) %>% 
   write_csv("data/profiles.csv")
 
 
