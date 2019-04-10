@@ -103,7 +103,7 @@ profile <- profile %>%
   right_join(profile) %>%
   mutate(habitat_13 = case_when(is.na(habitat_13) ~ habitat_13_x,
                                 TRUE ~ habitat_13)) %>%
-  select(-habitat_13_x) %>% 
+  select(-habitat_13_x) %>%
   write_csv("data/profiles.csv")
 
 

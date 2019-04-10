@@ -9,6 +9,8 @@ library(readr)
 library(here)
 library(ggplot2)
 library(tidyr)
+library(hrbrthemes)
+library(cowplot)
 
 #' convert degrees minutes decimal seconds to decimal degrees
 #' 
@@ -74,5 +76,43 @@ create_habitat_id <- function(x){
     }
   }
   y
+}
+
+#' function to generate profile plot
+#' @param profile_df data frame with the profile data in it
+#' @param habitat which habitat to plot
+#' @param title title for the plot
+#' @export
+profile_figure <- function(profiledf, 
+                           habitat = c("high marsh","s. alt and bare", 
+                                       "high marsh mix"),
+                           title){
+  
+  habitat <- match.arg(habitat)
+  profiledf_id <- profiledf %>%
+    mutate(habitat_13_id = create_habitat_id(replace_na(habitat_13,""))) %>%
+    group_by(habitat_13_id) %>%
+    mutate(hab_segment_distance = max(distance) - min(distance)) %>%
+    ungroup()
+  
+  profiledf_loess <- profiledf_id %>%
+    group_by(transect, year) %>%
+    mutate(loess_smooth_elev = predict(loess(elevation ~ distance, span = 0.2))) %>%
+    select(year, transect, distance, elevation, loess_smooth_elev, habitat_13, habitat_13_id)
+  
+  profile_hab <- profiledf_loess %>%
+    filter(habitat_13 == habitat)
+  
+  profiledf_loess %>%
+    ggplot(aes(x = distance, y = loess_smooth_elev)) +
+    geom_point(aes(y=elevation, fill = factor(year)), alpha = 0.5) +
+    scale_fill_manual(values = c("grey70", "grey50")) +
+    geom_line(data = profile_hab, aes(group = habitat_13_id, color = factor(year)), size = 1.5) +
+    scale_color_manual(values = c("darkred", "darkblue")) +
+    facet_grid(transect ~ ., scales = "free") +
+    theme_ipsum() +
+    scale_y_continuous(limits = c(0,1)) +
+    scale_x_continuous(limits = c(0,100)) +
+    labs(title = title)
 }
 
