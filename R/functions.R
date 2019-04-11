@@ -92,71 +92,24 @@ profile_figure <- function(profiledf,
   habitat <- match.arg(habitat)
   
   # classify 2016 based on 2013 habitats
-  prof_sel <- profiledf %>% 
+  profile_sel <- profiledf %>% 
     select(transect, year, elevation, distance, habitat_agg, habitat_id)
-  
-  habitat_dists_2013 <- prof_sel %>% 
-    filter(year == 2013) %>%
-    group_by(transect, habitat_agg, habitat_id) %>%
-    summarize(min_dist = min(distance),
-              max_dist = max(distance)) %>%
-    ungroup() %>%
-    select(transect, habitat_agg, min_dist, max_dist) %>%
-    # Need to figure out NA's getting lost
-    gather(type,dist, 3:4) %>%
-    mutate(year = NA, elevation = NA) %>%
-    arrange(transect, dist) %>%
-    select(transect, year, elevation, distance = dist, habitat_agg)
+ 
+  profiledf_hab <- profile_sel %>%
+    filter(habitat_agg == habitat) 
     
-  habitat_13_on_16 <- prof_sel %>%
-    select(transect, year, elevation, distance, habitat_agg) %>%
-    filter(year == 2016) %>%
-    mutate(habitat_agg = NA) %>%
-    rbind(habitat_dists_2013) %>%
-    arrange(transect, distance) %>%
-    mutate(habitat_agg = zoo::na.locf(habitat_agg, na.rm = FALSE))
-  
-  
-  profile_13 <- profiledf %>%
-    filter(year == 2013) %>%
-    select(distance, elevation)
-  profile_16 <- profiledf %>%
-    filter(year == 2016) %>%
-    select(distance, elevation)
-  
-  profile_13_distance <- select(profile_13, distance)
-  
-  loess_13 <- 
-  loess_16 <- loess(elevation ~ distance, span = 0.2, data = profile_16)
-  
-  loess_13_elevs <- predict(loess_13)
-  loess_16_elevs_13_distances <- predict(loess_16, 
-                                         newdata = data.frame(distance = profile_13$distance))
-  
-  profile_smoothed_13 <- profile %>%
-    filter(year == 2013) %>%
-    group_by(transect())
-    mutate(loess_smooth_elev = loess_13_elevs) %>%
-    select(transect, distance, loess_smooth_elev, habitat_agg)
-  
-  profile_smoothed_16 <- profile %>%
-    filter(year == 2013) %>%
-    mutate(loess_smooth_elev = loess_16_elevs_13_distances,
-           year = 2016) %>%
-    select(distance, loess_smooth_elev, habitat_agg)
-  
-  profiledf_loess <- profile_smoothed_13 %>%
-    rbind(profile_smoothed_16)
-    
-    
+  profiledf_loess <- profiledf_hab %>% 
+    group_by(transect, year) %>% #numbers per transect are problems... 
+    mutate(loess_smooth_elev = predict(loess(elevation ~ distance, span = .2)))
+
   profile_hab <- profiledf_loess %>%
     filter(habitat_agg == habitat)
   
   profiledf_loess %>%
-    ggplot(aes(x = distance, y = loess_smooth_elev)) +
+    ggplot(aes(x = distance, y = elevation)) +
     geom_point(aes(y=elevation, fill = factor(year)), alpha = 0.5) +
     scale_fill_manual(values = c("grey70", "grey50")) +
-    geom_line(data = profile_hab, aes(group = habitat_13_id, color = factor(year)), size = 1.5) +
+    geom_line(data = profile_hab, aes(color = factor(year)), size = 1.5) +
     scale_color_manual(values = c("darkred", "darkblue")) +
     facet_grid(transect ~ ., scales = "free") +
     theme_ipsum() +
