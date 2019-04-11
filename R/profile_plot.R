@@ -6,12 +6,23 @@ profiles <- read_csv(here("data/profiles.csv"))
 high_marsh <- profile_figure(profiledf = profiles, habitat = "high marsh", 
                              title = "A. High Marsh Elevation Profile")
 
-high_marsh_ <- profile_figure(profiledf = profiles, habitat = "high marsh mix", 
-                             title = "A. High Marsh Mix Elevation Profile")
+ggsave(here("figures/high_marsh_figure .jpg"), high_marsh, width = 7.5, 
+        height = 5.625, units = "in", dpi = 300)
+
+high_marsh_mix <- profile_figure(profiledf = profiles, habitat = "high marsh mix", 
+                             title = "B. High Marsh Mix Elevation Profile")
+
+ggsave(here("figures/high_marsh_mix_figure .jpg"), high_marsh_mix, width = 7.5, 
+       height = 5.625, units = "in", dpi = 300)
 
 sa_bare <- profile_figure(profiledf = profiles, habitat = "s. alt and bare", 
-                             title = "A. Spartina alterniflora and bare Elevation Profile")
-  
+                             title = "C. Spartina alterniflora and bare Elevation Profile")
+
+ggsave(here("figures/sa_bare_figure .jpg"), sa_bare, width = 7.5, 
+       height = 5.625, units = "in", dpi = 300)
+
+combine_profile <- cowplot::plot_grid(high_marsh, high_marsh_mix, sa_bare, 
+                                      ncol = 1)
 
 # Build out figure with dist (or proportional dist) on x and elevation on y
 # Show different habitat sections of profiles
