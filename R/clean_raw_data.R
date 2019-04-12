@@ -62,8 +62,7 @@ profile <- profile_1 %>%
   rbind(habitat) %>%
   filter(year == 2013 | year == 2016) %>%
   arrange(year, transect, distance) %>%
-  mutate(habitat = zoo::na.locf(habitat, na.rm = FALSE),
-         habitat_id = create_habitat_id(habitat)) %>%
+  mutate(habitat = zoo::na.locf(habitat, na.rm = FALSE)) %>%
   mutate(habitat_agg = case_when(habitat == "Salt meadow" ~ "high marsh",
                                  habitat == "High marsh mix" ~ "high marsh mix",
                                  habitat == "Spartina alterniflora" | 
