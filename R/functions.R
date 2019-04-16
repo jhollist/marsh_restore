@@ -115,7 +115,7 @@ profile_figure <- function(profiledf,
     facet_grid(transect ~ ., scales = "free") +
     theme_ipsum(axis_title_size = 11) +
     labs(title = title, x = "Distance along transect (m)", 
-         y = "Elevation (m)", color = "Year of Profile")
+         y = "Elevation (m)", color = "Year")
 }
 
 #' Classify 2016 points based on 2013 habitats
@@ -126,6 +126,7 @@ profile_figure <- function(profiledf,
 #'               points in 2016 between those distances.
 #' @export
 classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
+  
   
   # This is ugly code...  but I think it works...
   profiledf <- profiledf %>%
