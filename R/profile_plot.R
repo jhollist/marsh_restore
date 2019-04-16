@@ -4,6 +4,28 @@ profiles <- read_csv(here("data/profiles.csv"))
 
 profiles_smooth <- classify_smooth(profiles, span = 0.15)
 
+# Truncate to start and end of marsh
+t1 <- c(19, 75)
+t2 <- c(20, 118)
+t3 <- c(13, 89)
+
+#Meathead way to do this
+profile_1 <- profiles_smooth %>%
+  filter(transect == 1) %>%
+  filter(distance >= t1[1] & distance <= t1[2])
+
+profile_2 <- profiles_smooth %>%
+  filter(transect == 2) %>%
+  filter(distance >= t2[1] & distance <= t2[2])
+
+profile_3 <- profiles_smooth %>%
+  filter(transect == 3) %>%
+  filter(distance >= t3[1] & distance <= t3[2])
+
+profiles_smooth <- profile_1 %>%
+  rbind(profile_2) %>%
+  rbind(profile_3)
+
 high_marsh <- profile_figure(profiledf = profiles_smooth, 
                              habitat = "high marsh", 
                              title = "A. High marsh")

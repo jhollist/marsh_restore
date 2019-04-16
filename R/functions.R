@@ -129,9 +129,9 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
   
   
   # This is ugly code...  but I think it works...
-  profiledf <- profiledf %>%
-    mutate(habitat_agg = case_when(is.na(habitat_agg) ~ "",
-                                   TRUE ~ habitat_agg))
+  #profiledf <- profiledf %>%
+  #  mutate(habitat_agg = case_when(is.na(habitat_agg) ~ "",
+  #                                 TRUE ~ habitat_agg))
   # loess models for smoothing
   t113_loess <- profiledf %>%
     filter(year == 2013, transect == 1) %>%
@@ -165,107 +165,114 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
   
   # smoothed elevations predicted to merged distances
   t113_smooth_elev <- t1_newdata %>%
-    mutate(transect = 1, year = 2013, habitat_agg = NA,
+    mutate(transect = 1, year = 2013, 
            loess_smooth_elev = predict(t113_loess, newdata = .)) %>%
     arrange(year, transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev)
   t213_smooth_elev <- t2_newdata %>%
-    mutate(transect = 2, year = 2013, habitat_agg = NA,
+    mutate(transect = 2, year = 2013, 
            loess_smooth_elev = predict(t213_loess, newdata = .))%>%
     arrange(year, transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev)
   t313_smooth_elev <- t3_newdata %>%
-    mutate(transect = 3, year = 2013, habitat_agg = NA,
+    mutate(transect = 3, year = 2013, 
            loess_smooth_elev = predict(t313_loess, newdata = .)) %>%
     arrange(year, transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev)
   t116_smooth_elev <- t1_newdata %>%
-    mutate(transect = 1, year = 2016, habitat_agg = NA,
+    mutate(transect = 1, year = 2016, 
            loess_smooth_elev = predict(t116_loess, newdata = .)) %>%
     arrange(year, transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev)
   t216_smooth_elev <- t2_newdata %>%
-    mutate(transect = 2, year = 2016, habitat_agg = NA,
+    mutate(transect = 2, year = 2016, 
            loess_smooth_elev = predict(t216_loess, newdata = .)) %>%
     arrange(year, transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev)
   t316_smooth_elev <- t3_newdata %>%
-    mutate(transect = 3, year = 2016, habitat_agg = NA,
+    mutate(transect = 3, year = 2016, 
            loess_smooth_elev = predict(t316_loess, newdata = .)) %>%
     arrange(year, transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev)
   
   profiledf_13 <- profiledf %>%
     filter(year == 2013) %>%
-    mutate(loess_smooth_elev = NA) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg) 
+    #mutate(loess_smooth_elev = NA) %>%
+    select(transect, year, distance, habitat) 
   
   profiledf_16 <- profiledf %>%
     filter(year == 2016) %>%
-    mutate(loess_smooth_elev = NA) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg) 
+    #mutate(loess_smooth_elev = NA) %>%
+    select(transect, year, distance, habitat) 
   
+  # Problem starts here  I think
   profiledf_smoothed_13 <- t113_smooth_elev %>%
     rbind(t213_smooth_elev) %>%
     rbind(t313_smooth_elev) %>%
-    rbind(profiledf_13) %>%
+    left_join(profiledf_13) %>%
     arrange(transect, distance) %>%
     group_by(transect) %>%
-    mutate(habitat_agg = zoo::na.locf(habitat_agg, na.rm = FALSE)) %>%
+    mutate(habitat = zoo::na.locf(habitat, na.rm = FALSE)) %>%
     ungroup() %>%
-    na.omit() # drops rows without a smoothe elevation prediction
+    filter(!is.na(loess_smooth_elev)) # drops rows without a smoothe elevation prediction
   
   profiledf_smoothed_16 <-t116_smooth_elev %>%
     rbind(t216_smooth_elev) %>%
     rbind(t316_smooth_elev) %>%
-    rbind(profiledf_16) %>%
+    left_join(profiledf_16) %>%
     arrange(transect, distance) %>%
     group_by(transect) %>%
-    mutate(habitat_agg = zoo::na.locf(habitat_agg, na.rm = FALSE)) %>%
+    mutate(habitat = zoo::na.locf(habitat, na.rm = FALSE)) %>%
     ungroup() %>%
-    na.omit() # drops rows without a smoothe elevation prediction
+    filter(!is.na(loess_smooth_elev)) # drops rows without a smoothe elevation prediction
   
   profiledf_smoothed <- profiledf_smoothed_13 %>%
     rbind(profiledf_smoothed_16)
     
-
+  
   habitat_dists_2013 <- profiledf_smoothed %>% 
     filter(year == 2013) %>%
     group_by(transect) %>%
-    mutate(habitat_id = create_habitat_id(habitat_agg)) %>%
+    mutate(habitat_id = create_habitat_id(habitat)) %>%
     ungroup() %>%
-    group_by(transect, habitat_agg, habitat_id) %>%
+    group_by(transect, habitat, habitat_id) %>%
     summarize(min_dist = min(distance),
               max_dist = max(distance)) %>%
     ungroup() %>%
-    select(transect, habitat_agg, min_dist, max_dist) %>%
+    select(transect, habitat, min_dist, max_dist) %>%
     # Need to figure out NA's getting lost
     gather(type,distance, 3:4) %>%
     mutate(year = NA, loess_smooth_elev = NA) %>%
     arrange(transect, distance) %>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg)
+    select(transect, year, distance, loess_smooth_elev, habitat)
 
   habitat_13_on_16 <- profiledf_smoothed%>%
-    select(transect, year, distance, loess_smooth_elev, habitat_agg) %>%
+    select(transect, year, distance, loess_smooth_elev, habitat) %>%
     filter(year == 2016) %>%
-    mutate(habitat_agg = NA) %>%
+    mutate(habitat = NA) %>%
     rbind(habitat_dists_2013) %>%
     arrange(transect, distance) %>%
     group_by(transect) %>%
-    mutate(habitat_13 = zoo::na.locf(habitat_agg, na.rm = FALSE)) %>%
+    mutate(habitat_13 = zoo::na.locf(habitat, na.rm = FALSE)) %>%
     ungroup() %>%
     select(transect, year, distance, loess_smooth_elev, habitat_13) %>%
     na.omit() #removes all rows that aren't 2016 plus any rows outside of hab dists
 
   profiledf <- profiledf_smoothed %>% 
     left_join(habitat_13_on_16) %>%
-    mutate(habitat_13 = case_when(year == 2013 ~ habitat_agg,
+    mutate(habitat_13 = case_when(year == 2013 ~ habitat,
                                   TRUE ~ habitat_13)) %>%
     filter(!is.na(habitat_13)) %>%
+    mutate(habitat_agg = case_when(habitat_13 == "Salt meadow" ~ "high marsh",
+                                   habitat_13 == "High marsh mix" ~ "high marsh mix",
+                                   habitat_13 == "Spartina alterniflora" | 
+                                     habitat_13 ==  "Bare/die-off (platform)" ~  "s. alt and bare",
+                                   TRUE ~ NA_character_)) %>%
     group_by(year, transect) %>%
     mutate(habitat_13_id = paste0(year,"_",transect, "_", 
                                   create_habitat_id(habitat_13))) %>%
-    ungroup()
+    ungroup() 
+    
   
   profiledf
 }
