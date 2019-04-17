@@ -39,7 +39,6 @@ dmds <- function(dmds, sep = " "){
 rtk <- function(rtks, neg = F){
   rtks <- as.character(rtks)
   if(neg){
-    browser()
     d <- str_sub(rtks, 1, 3)
     m <- str_sub(rtks, 5, 6)
     s <- str_sub(rtks, 7, 8)
@@ -84,17 +83,17 @@ create_habitat_id <- function(x){
 #' @param title title for the plot
 #' @export
 profile_figure <- function(profiledf, 
-                           habitat = c("high marsh","s. alt and bare", 
+                           hab = c("high marsh","s. alt and bare", 
                                        "high marsh mix"),
                            title){
   
-  habitat <- match.arg(habitat)
+  hab <- match.arg(hab)
   
   profiledf <- profiledf %>%
     mutate(transect = paste("Transect", transect))
   
   profiledf_hab <- profiledf %>%
-    filter(habitat_13 == habitat) 
+    filter(habitat_agg == hab) 
   
   profiledf_2013 <- profiledf %>%
     filter(year == 2013)
@@ -152,15 +151,15 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
     filter(year == 2016, transect == 3) %>%
     loess(elevation ~ distance, span = span, data = .)
   
-  # merged distances
+  # merged distances - oops, problem was here.  Only had t1 distances! 
   t1_newdata <- profiledf %>%
     filter(transect == 1) %>%
     select(distance) 
   t2_newdata <- profiledf %>%
-    filter(transect == 1) %>%
+    filter(transect == 2) %>%
     select(distance)
   t3_newdata <- profiledf %>%
-    filter(transect == 1) %>%
+    filter(transect == 3) %>%
     select(distance)
   
   # smoothed elevations predicted to merged distances
@@ -205,7 +204,6 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
     #mutate(loess_smooth_elev = NA) %>%
     select(transect, year, distance, habitat) 
   
-  # Problem starts here  I think
   profiledf_smoothed_13 <- t113_smooth_elev %>%
     rbind(t213_smooth_elev) %>%
     rbind(t313_smooth_elev) %>%
