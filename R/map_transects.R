@@ -1,4 +1,8 @@
 source(here::here("R/functions.R"))
+library(sp)
+library(sf)
+library(mapview)
+library(stringr)
 
 # Read in csv files
 wells <- read_csv(here("data/wells.csv"))

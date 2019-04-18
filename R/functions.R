@@ -1,14 +1,13 @@
 #' All required packages
-library(dplyr)
-library(sp)
-library(sf)
-library(mapview)
-library(stringr)
+library(here)
 library(readxl)
 library(readr)
-library(here)
-library(ggplot2)
+
+library(dplyr)
+library(stringr)
 library(tidyr)
+
+library(ggplot2)
 library(hrbrthemes)
 library(cowplot)
 
@@ -79,7 +78,7 @@ create_habitat_id <- function(x){
 
 #' function to generate profile plot
 #' @param profile_df data frame with the profile data in it
-#' @param habitat which habitat to plot
+#' @param hab which habitat to plot
 #' @param title title for the plot
 #' @export
 profile_figure <- function(profiledf, 
@@ -114,7 +113,8 @@ profile_figure <- function(profiledf,
     facet_grid(transect ~ ., scales = "free") +
     theme_ipsum(axis_title_size = 11) +
     labs(title = title, x = "Distance along transect (m)", 
-         y = "Elevation (m)", color = "Year")
+         y = "Elevation (m NAVD88)", color = "Year") +
+    theme(plot.title = element_text(face = "plain"))
 }
 
 #' Classify 2016 points based on 2013 habitats
@@ -128,9 +128,7 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
   
   
   # This is ugly code...  but I think it works...
-  #profiledf <- profiledf %>%
-  #  mutate(habitat_agg = case_when(is.na(habitat_agg) ~ "",
-  #                                 TRUE ~ habitat_agg))
+  
   # loess models for smoothing
   t113_loess <- profiledf %>%
     filter(year == 2013, transect == 1) %>%
