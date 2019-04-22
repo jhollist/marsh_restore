@@ -55,19 +55,33 @@ habitat <- read_excel(here("data/raw/JHo cogg rest habitat transition data.xlsx"
          latitude_dd = dmds(rtk(latitude))) %>%
   select(name,transect,elevation,latitude,longitude,distance,longitude_dd, 
          latitude_dd,year,habitat)
-  
+
+# Forcing any id of creek from 2014 and beyond onto 2013 and 2016 so as to 
+# remove that from the plots
+creek_13 <- habitat %>%
+  filter(habitat == "Creek/ditch") %>%
+  filter(year != 2013) %>%
+  mutate(year = 2013)
+
+creeks <- creek_13 %>%
+  mutate(year = 2016) %>%
+  rbind(creek_13)
+
 profile <- profile_1 %>%
   rbind(profile_2) %>%
   rbind(profile_3) %>%
   mutate(habitat = NA) %>%
   rbind(habitat) %>%
+  #rbind(creeks) %>%
   filter(year == 2013 | year == 2016) %>%
   arrange(year, transect, distance) %>%
   mutate(habitat = zoo::na.locf(habitat, na.rm = FALSE)) %>%
   mutate(habitat_agg = case_when(habitat == "Salt meadow" ~ "high marsh",
                                  habitat == "High marsh mix" ~ "high marsh mix",
                                  habitat == "Spartina alterniflora" | 
-                                   habitat ==  "Bare/die-off (platform)" ~  "s. alt and bare",
+                                   habitat ==  "Bare/die-off (platform)" ~  
+                                   "s. alt and bare",
+                                 #habitat == "Creek/ditch" ~ "creek"
                                  TRUE ~ NA_character_)) %>%
   write_csv("data/profiles.csv")
 
