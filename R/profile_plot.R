@@ -2,6 +2,26 @@ source(here::here("R/functions.R"))
 
 profiles <- read_csv(here("data/profiles.csv"))
 
+#creek_dist <- read_csv(here("data/habitats.csv")) %>%
+#  creek_dists() %>%
+#  data.frame
+
+#Add creeks in
+#profiles <- profiles %>%
+#  mutate(habitat = case_when(transect == 1 & 
+#                               distance >= creek_dist[1,2] & 
+#                               distance <= creek_dist[1,3] ~ 
+#                               "creek",
+#                             transect == 2 & 
+#                               distance >= creek_dist[2,2] & 
+#                               distance <= creek_dist[2,3] ~ 
+#                               "creek",
+#                             transect == 3 & 
+#                               distance >= creek_dist[3,2] & 
+#                               distance <= creek_dist[3,3] ~ 
+#                               "creek",
+#                             TRUE ~ habitat))
+
 profiles_smooth <- classify_smooth(profiles, span = 0.15)
 
 # Truncate to start and end of marsh

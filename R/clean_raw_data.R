@@ -54,7 +54,8 @@ habitat <- read_excel(here("data/raw/JHo cogg rest habitat transition data.xlsx"
   mutate(longitude_dd = -dmds(rtk(gsub("-","",longitude))), 
          latitude_dd = dmds(rtk(latitude))) %>%
   select(name,transect,elevation,latitude,longitude,distance,longitude_dd, 
-         latitude_dd,year,habitat)
+         latitude_dd,year,habitat) %>%
+  write_csv("data/habitats.csv")
 
 # Forcing any id of creek from 2014 and beyond onto 2013 and 2016 so as to 
 # remove that from the plots

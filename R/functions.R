@@ -53,6 +53,24 @@ rtk <- function(rtks, neg = F){
   dms
 }
 
+#' expand it
+#' @param x numeric, ascending ordered vector of indices for a dataframe
+expand_it <- function(x){
+  # from https://stackoverflow.com/questions/43403282/add-row-in-each-group-using-dplyr-and-add-row
+  y <- seq(nrow(x)) %>% 
+    split(group_indices(x, col)) %>% 
+    map(~c(NA, .x)) %>%
+    unlist
+  for(i in seq_along(y)){
+    if(i == 1){
+      y[i] <- x[1] - 1
+    } else {
+      y[i] <- ifelse(x[i] == x[i - 1] + 1, x[i-1], x[i] + 1)
+    }
+  }
+}
+
+
 #' Assign id to each unique section of habitat
 #' @param x A vector of habitats, in order based on distance along transect
 #' @export
@@ -99,15 +117,34 @@ profile_figure <- function(profiledf,
   
   profiledf_2016 <- profiledf %>%
     filter(year == 2016)
-    
+  
+  #profiledf_creek_2013 <- profiledf_2013 %>%
+  #  filter(habitat_agg == "creek")
+  
+  #profiledf_creek_2016 <- profiledf_2016 %>%
+  #  filter(habitat_agg == "creek")
+  
+  creek_dist <- read_csv(here("data/habitats.csv")) %>%
+    creek_dists() %>%
+    mutate(transect = paste("Transect", transect))
+  
+  browser()
   
   profiledf %>%
-    ggplot(aes(x = distance, y = loess_smooth_elev)) +
+    ggplot() +
+    geom_rect(data = creek_dist,
+              aes(xmin = creek_strat, xmax = creek_end, ymin = -Inf, ymax = Inf),
+              fill = "grey", alpha = 0.5) +
     geom_line(data = profiledf_2013, aes(x = distance, y = loess_smooth_elev),
               color = "darkred", alpha = 0.5) +
     geom_line(data = profiledf_2016, aes(x = distance, y = loess_smooth_elev),
               color = "darkblue", alpha = 0.5) +
-    geom_line(data = profiledf_hab, aes(group = habitat_13_id, 
+    #geom_line(data = profiledf_creek_2013, aes(x = distance, y = loess_smooth_elev),
+    #          color = "black", size = 1.1) +
+    #geom_line(data = profiledf_creek_2016, aes(x = distance, y = loess_smooth_elev),
+    #          color = "black", size = 1.1) +
+    geom_line(data = profiledf_hab, aes(x = distance, y = loess_smooth_elev,
+                                        group = habitat_13_id, 
                                         color = factor(year)), size = 1.1) +
     scale_color_manual(values = c("darkred", "darkblue")) +
     facet_grid(transect ~ ., scales = "free") +
@@ -118,6 +155,8 @@ profile_figure <- function(profiledf,
 }
 
 #' Classify 2016 points based on 2013 habitats
+#' 
+#' This code embarasses me...  Please do not judge.
 #' 
 #' @param profiledf data frame of cleaned 2013 and 2016 profiles
 #' @param smooth logical to use a loess to smooth and predict to a common set of
@@ -224,7 +263,6 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
   
   profiledf_smoothed <- profiledf_smoothed_13 %>%
     rbind(profiledf_smoothed_16)
-    
   
   habitat_dists_2013 <- profiledf_smoothed %>% 
     filter(year == 2013) %>%
@@ -249,13 +287,33 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
     rbind(habitat_dists_2013) %>%
     arrange(transect, distance) %>%
     group_by(transect) %>%
-    mutate(habitat_13 = zoo::na.locf(habitat, na.rm = FALSE)) %>%
+    mutate(habitat_13 = zoo::na.locf(habitat, na.rm = FALSE, fromLast = TRUE)) %>%
     ungroup() %>%
     select(transect, year, distance, loess_smooth_elev, habitat_13) %>%
     na.omit() #removes all rows that aren't 2016 plus any rows outside of hab dists
 
+  # Really add the creeks this time (have I mentioned that this code is awful)
+  
+  #creek_dist <- read_csv(here("data/habitats.csv")) %>%
+  #  creek_dists() %>%
+  #  data.frame
+  
   profiledf <- profiledf_smoothed %>% 
     left_join(habitat_13_on_16) %>%
+    # adds in creeks
+    # mutate(habitat = case_when(transect == 1 & 
+    #                              distance >= creek_dist[1,2] & 
+    #                             distance <= creek_dist[1,3] ~ 
+    #                               "creek",
+    #                             transect == 2 & 
+     #                            distance >= creek_dist[2,2] & 
+    #                             distance <= creek_dist[2,3] ~ 
+    #                             "creek",
+    #                           transect == 3 & 
+    #                             distance >= creek_dist[3,2] & 
+    #                             distance <= creek_dist[3,3] ~ 
+    #                             "creek",
+    #                           TRUE ~ habitat)) %>%
     mutate(habitat_13 = case_when(year == 2013 ~ habitat,
                                   TRUE ~ habitat_13)) %>%
     filter(!is.na(habitat_13)) %>%
@@ -263,12 +321,111 @@ classify_smooth <- function(profiledf, smooth = TRUE, span = 0.15){
                                    habitat_13 == "High marsh mix" ~ "high marsh mix",
                                    habitat_13 == "Spartina alterniflora" | 
                                      habitat_13 ==  "Bare/die-off (platform)" ~  "s. alt and bare",
+                                   #habitat_13 == "creek" ~ "creek",
                                    TRUE ~ NA_character_)) %>%
     group_by(year, transect) %>%
     mutate(habitat_13_id = paste0(year,"_",transect, "_", 
-                                  create_habitat_id(habitat_13))) %>%
+                                  create_habitat_id(habitat_13)),
+           habitat_agg_id = paste0(year,"_",transect, "_", 
+                                  create_habitat_id(habitat_agg))) %>%
     ungroup() 
-    
+
+  
+  #max_row_idx <- profiledf %>% 
+  #  group_by(habitat_agg_id) %>% 
+  #  mutate(grp_max = max(distance)) %>% 
+  #  ungroup() %>% 
+  #  mutate(grp_max_logic = distance == grp_max) %>%
+  #  pull(grp_max_logic) %>%
+  #  which
+  
+  #max_row_idx <- max_row_idx[-length(max_row_idx)]
+  
+  #browser()
+  #insert_me <- profiledf %>% 
+  #  slice(max_row_idx) %>%
+  #  mutate(habitat_agg = NA)
+  
+  #profiledf <- profiledf %>%
+  #  rbind(insert_me) %>%
+  #  arrange(transect, year, distance) %>%
+  #  mutate(habitat_agg = case_when(!is.na(habitat_agg) ~
+  #                                   habitat_agg,
+  #                                 habitat_13 != "creek" ~ 
+  #                                   zoo::na.locf(habitat_agg, na.rm = FALSE, 
+  #                                                fromLast = TRUE),
+  #                                 habitat_13 == "creek" ~
+  #                                   "creek"))
   
   profiledf
 }
+
+#' Manual assignment of creek distances becuase I dont have time...
+#' 
+creek_dists <- function(habdf){
+  
+ t1_14 <- tibble(transect = 1, year = 2014, start_dist = 44.84261,
+                 end_dist = 46.11924)
+ t2_14 <- tibble(transect = 2, year = 2014, start_dist = 47.65672,
+                 end_dist = 49.26648) 
+ t3_14 <- tibble(transect = 3, year = 2014, start_dist = 23.89871,
+                 end_dist = 25.09615)
+ t1_15 <- tibble(transect = 1, year = 2015, start_dist = 44.89415,
+                 end_dist = 46.34214)
+ t2_15 <- tibble(transect = 2, year = 2015, start_dist = 47.64392,
+                 end_dist = 49.10619) 
+ t3_15 <- tibble(transect = 3, year = 2015, start_dist = 23.94900,
+                 end_dist = 25.35244)
+ t1_16 <- tibble(transect = 1, year = 2016, start_dist = 45.22229,
+                 end_dist = 45.99429)
+ t2_16 <- tibble(transect = 2, year = 2016, start_dist = 47.40146,
+                 end_dist = 49.28349) 
+ t3_16 <- tibble(transect = 3, year = 2016, start_dist = 23.86280,
+                 end_dist = 25.05876)
+ 
+ dists <- rbind(t1_14) %>%
+   rbind(t2_14) %>%
+   rbind(t3_14) %>%
+   rbind(t1_15) %>%
+   rbind(t2_15) %>%
+   rbind(t3_15) %>%
+   rbind(t1_16) %>%
+   rbind(t2_16) %>%
+   rbind(t3_16) %>%
+   group_by(transect) %>%
+   summarize(creek_strat = min(start_dist), 
+             creek_end = max(end_dist))
+  
+ dists
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
