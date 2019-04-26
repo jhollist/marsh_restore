@@ -128,7 +128,7 @@ profile_figure <- function(profiledf,
     creek_dists() %>%
     mutate(transect = paste("Transect", transect))
   
-  browser()
+  #browser()
   
   profiledf %>%
     ggplot() +

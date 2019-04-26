@@ -64,7 +64,7 @@ ggsave(here("figures/high_marsh_mix_figure .jpg"), high_marsh_mix, width = 7.5,
 sa_bare <- profile_figure(profiledf = profiles_smooth, 
                           hab = "s. alt and bare", 
                           title = expression(paste("C. ", 
-                                                   italic("Spartina alterniflora"), 
+                                                   italic("Spartina alterniflora "), 
                                                    "and bare")))
 
 ggsave(here("figures/sa_bare_figure .jpg"), sa_bare, width = 7.5, 
