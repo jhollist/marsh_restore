@@ -107,7 +107,7 @@ profile_figure <- function(profiledf,
   hab <- match.arg(hab)
   
   profiledf <- profiledf %>%
-    mutate(transect = paste("Transect", transect))
+    mutate(transect = paste("Trans.", transect))
   
   profiledf_hab <- profiledf %>%
     filter(habitat_agg == hab) 
@@ -126,9 +126,9 @@ profile_figure <- function(profiledf,
   
   creek_dist <- read_csv(here("data/habitats.csv")) %>%
     creek_dists() %>%
-    mutate(transect = paste("Transect", transect))
+    mutate(transect = paste("Trans.", transect))
   
-  #browser()
+  browser()
   
   profiledf %>%
     ggplot() +
@@ -147,8 +147,12 @@ profile_figure <- function(profiledf,
                                         group = habitat_13_id, 
                                         color = factor(year)), size = 1.1) +
     scale_color_manual(values = c("darkred", "darkblue")) +
-    facet_grid(transect ~ ., scales = "free") +
-    theme_ipsum(axis_title_size = 11) +
+    facet_grid(transect ~ ., scales = "fixed") +
+    theme_ipsum(plot_title_size = 14,axis_text_size = 11, axis_title_size = 11, 
+                strip_text_size = 11) +
+    theme(panel.spacing.y = unit(0.2,"cm"), 
+          plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
+          axis.title.y = element_text(margin = margin(t = 0, r = 0.25, b = 0, l = 0, "cm"))) +
     labs(title = title, x = "Distance along transect (m)", 
          y = "Elevation (m NAVD88)", color = "Year") +
     theme(plot.title = element_text(face = "plain"))
